@@ -17,32 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sk89q.worldedit.forge;
+package com.sk89q.worldedit.fabric.mixin;
 
-import com.mojang.authlib.GameProfile;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.MenuProvider;
-import net.minecraftforge.common.util.FakePlayer;
+import com.mojang.datafixers.util.Either;
+import net.minecraft.server.level.ChunkHolder;
+import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
+import org.spongepowered.asm.mixin.gen.Invoker;
 
-import java.util.OptionalInt;
-import java.util.UUID;
-import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 
-public class WorldEditFakePlayer extends FakePlayer {
+@Mixin(ServerChunkCache.class)
+public interface AccessorServerChunkCache {
 
-    private static final GameProfile FAKE_GAME_PROFILE = new GameProfile(UUID.nameUUIDFromBytes("worldedit".getBytes()), "[WorldEdit]");
+    @Invoker
+    CompletableFuture<Either<ChunkAccess, ChunkHolder.ChunkLoadingFailure>> callGetChunkFuture(int chunkX, int chunkZ, ChunkStatus leastStatus, boolean create);
 
-    public WorldEditFakePlayer(ServerLevel world) {
-        super(world, FAKE_GAME_PROFILE);
-    }
+    @Accessor
+    ServerChunkCache.MainThreadExecutor getMainThreadProcessor();
 
-    @Override
-    public boolean canEat(boolean checkHunger) {
-        return true;
-    }
-
-    @Override
-    public OptionalInt openMenu(@Nullable MenuProvider menuProvider) {
-        return OptionalInt.empty();
-    }
 }

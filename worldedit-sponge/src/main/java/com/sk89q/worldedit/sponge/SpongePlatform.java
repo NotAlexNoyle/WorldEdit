@@ -184,11 +184,6 @@ class SpongePlatform extends AbstractPlatform implements MultiUserPlatform {
     }
 
     @Override
-    public long getTickCount() {
-        return Sponge.server().runningTimeTicks().ticks();
-    }
-
-    @Override
     public Collection<Actor> getConnectedUsers() {
         return Sponge.server().onlinePlayers().stream().map(SpongePlayer::new).collect(toList());
     }

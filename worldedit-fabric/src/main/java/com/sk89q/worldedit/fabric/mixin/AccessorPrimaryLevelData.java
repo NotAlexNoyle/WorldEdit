@@ -17,15 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sk89q.worldedit.forge.mixin;
+package com.sk89q.worldedit.fabric.mixin;
 
-import net.minecraft.server.level.ServerPlayerGameMode;
+import net.minecraft.world.level.levelgen.WorldOptions;
+import net.minecraft.world.level.storage.PrimaryLevelData;
+import net.minecraft.world.level.storage.WorldData;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(ServerPlayerGameMode.class)
-public interface AccessorServerPlayerGameMode {
+@Mixin(PrimaryLevelData.class)
+public interface AccessorPrimaryLevelData extends WorldData {
 
-    @Accessor("isDestroyingBlock")
-    boolean isDestroyingBlock();
+    @Accessor
+    @Mutable
+    void setWorldOptions(WorldOptions worldOptions);
+
 }

@@ -247,8 +247,6 @@ public class CylinderRegionSelector implements RegionSelector, CUIRegion {
     @Override
     public void clear() {
         region = new CylinderRegion(region.getWorld());
-        selectedCenter = false;
-        selectedRadius = false;
     }
 
     @Override

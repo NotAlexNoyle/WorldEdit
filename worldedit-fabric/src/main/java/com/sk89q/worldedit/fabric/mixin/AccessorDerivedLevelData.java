@@ -17,32 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sk89q.worldedit.forge;
+package com.sk89q.worldedit.fabric.mixin;
 
-import com.mojang.authlib.GameProfile;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.MenuProvider;
-import net.minecraftforge.common.util.FakePlayer;
+import net.minecraft.world.level.storage.DerivedLevelData;
+import net.minecraft.world.level.storage.ServerLevelData;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
 
-import java.util.OptionalInt;
-import java.util.UUID;
-import javax.annotation.Nullable;
+@Mixin(DerivedLevelData.class)
+public interface AccessorDerivedLevelData extends ServerLevelData {
 
-public class WorldEditFakePlayer extends FakePlayer {
-
-    private static final GameProfile FAKE_GAME_PROFILE = new GameProfile(UUID.nameUUIDFromBytes("worldedit".getBytes()), "[WorldEdit]");
-
-    public WorldEditFakePlayer(ServerLevel world) {
-        super(world, FAKE_GAME_PROFILE);
-    }
-
-    @Override
-    public boolean canEat(boolean checkHunger) {
-        return true;
-    }
-
-    @Override
-    public OptionalInt openMenu(@Nullable MenuProvider menuProvider) {
-        return OptionalInt.empty();
-    }
+    @Accessor
+    ServerLevelData getWrapped();
 }

@@ -22,6 +22,7 @@ package com.sk89q.worldedit.fabric;
 import com.sk89q.worldedit.world.registry.BlockMaterial;
 import com.sk89q.worldedit.world.registry.PassthroughBlockMaterial;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Material;
 import net.minecraft.world.level.material.PushReaction;
 
 import javax.annotation.Nullable;
@@ -33,51 +34,53 @@ import javax.annotation.Nullable;
  */
 public class FabricBlockMaterial extends PassthroughBlockMaterial {
 
+    private final Material delegate;
     private final BlockState block;
 
-    public FabricBlockMaterial(BlockState block, @Nullable BlockMaterial secondary) {
+    public FabricBlockMaterial(Material delegate, BlockState block, @Nullable BlockMaterial secondary) {
         super(secondary);
+        this.delegate = delegate;
         this.block = block;
     }
 
     @Override
     public boolean isAir() {
-        return block.isAir() || super.isAir();
+        return delegate == Material.AIR || super.isAir();
     }
 
     @Override
     public boolean isOpaque() {
-        return block.canOcclude();
+        return delegate.isSolidBlocking();
     }
 
     @Override
     public boolean isLiquid() {
-        return block.liquid();
+        return delegate.isLiquid();
     }
 
     @Override
     public boolean isSolid() {
-        return block.isSolid();
+        return delegate.isSolid();
     }
 
     @Override
     public boolean isFragileWhenPushed() {
-        return block.getPistonPushReaction() == PushReaction.DESTROY;
+        return delegate.getPushReaction() == PushReaction.DESTROY;
     }
 
     @Override
     public boolean isUnpushable() {
-        return block.getPistonPushReaction() == PushReaction.BLOCK;
+        return delegate.getPushReaction() == PushReaction.BLOCK;
     }
 
     @Override
     public boolean isMovementBlocker() {
-        return block.blocksMotion();
+        return delegate.blocksMotion();
     }
 
     @Override
     public boolean isBurnable() {
-        return block.ignitedByLava();
+        return delegate.isFlammable();
     }
 
     @Override
@@ -87,7 +90,7 @@ public class FabricBlockMaterial extends PassthroughBlockMaterial {
 
     @Override
     public boolean isReplacedDuringPlacement() {
-        return block.canBeReplaced();
+        return delegate.isReplaceable();
     }
 
 }

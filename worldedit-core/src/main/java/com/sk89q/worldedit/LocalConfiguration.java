@@ -91,7 +91,6 @@ public abstract class LocalConfiguration {
     public boolean allowSymlinks = false;
     public boolean serverSideCUI = true;
     public boolean extendedYLimit = false;
-    public boolean commandBlockSupport = false;
     public String defaultLocaleName = "default";
     public Locale defaultLocale = Locale.getDefault();
 

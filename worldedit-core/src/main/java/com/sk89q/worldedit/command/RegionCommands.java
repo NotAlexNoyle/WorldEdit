@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.LocalSession;
-import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
@@ -135,7 +134,7 @@ public class RegionCommands {
             return 0;
         }
         checkCommandArgument(thickness >= 0, "Thickness must be >= 0");
-        WorldEdit.getInstance().checkMaxRadius(thickness);
+
 
         List<BlockVector3> vectors;
 
@@ -173,7 +172,6 @@ public class RegionCommands {
             return 0;
         }
         checkCommandArgument(thickness >= 0, "Thickness must be >= 0");
-        WorldEdit.getInstance().checkMaxRadius(thickness);
 
         ConvexPolyhedralRegion cpregion = (ConvexPolyhedralRegion) region;
         List<BlockVector3> vectors = new ArrayList<>(cpregion.getVertices());

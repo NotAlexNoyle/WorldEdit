@@ -38,6 +38,9 @@ import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.fabric.internal.ExtendedMinecraftServer;
 import com.sk89q.worldedit.fabric.internal.FabricWorldNativeAccess;
 import com.sk89q.worldedit.fabric.internal.NBTConverter;
+import com.sk89q.worldedit.fabric.mixin.AccessorDerivedLevelData;
+import com.sk89q.worldedit.fabric.mixin.AccessorPrimaryLevelData;
+import com.sk89q.worldedit.fabric.mixin.AccessorServerChunkCache;
 import com.sk89q.worldedit.function.mask.AbstractExtentMask;
 import com.sk89q.worldedit.function.mask.Mask;
 import com.sk89q.worldedit.function.mask.Mask2D;
@@ -93,10 +96,8 @@ import net.minecraft.world.level.chunk.PalettedContainer;
 import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
-import net.minecraft.world.level.storage.DerivedLevelData;
 import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.level.storage.LevelStorageSource;
-import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraft.world.level.storage.ServerLevelData;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
@@ -322,14 +323,20 @@ public class FabricWorld extends AbstractWorld {
         LevelStorageSource levelStorage = LevelStorageSource.createDefault(tempDir);
         try (LevelStorageSource.LevelStorageAccess session = levelStorage.createAccess("WorldEditTempGen")) {
             ServerLevel originalWorld = (ServerLevel) getWorld();
-            PrimaryLevelData levelProperties = getPrimaryLevelData(originalWorld.getLevelData());
+            AccessorPrimaryLevelData levelProperties;
+            if (originalWorld.getLevelData() instanceof AccessorDerivedLevelData derivedLevelData) {
+                levelProperties = (AccessorPrimaryLevelData) derivedLevelData.getWrapped();
+            } else {
+                levelProperties = (AccessorPrimaryLevelData) originalWorld.getLevelData();
+            }
             WorldOptions originalOpts = levelProperties.worldGenOptions();
 
             long seed = options.getSeed().orElse(originalWorld.getSeed());
-            levelProperties.worldOptions = options.getSeed().isPresent()
+            WorldOptions newOpts = options.getSeed().isPresent()
                 ? originalOpts.withSeed(OptionalLong.of(seed))
                 : originalOpts;
 
+            levelProperties.setWorldOptions(newOpts);
             ResourceKey<Level> worldRegKey = originalWorld.dimension();
             try (ServerLevel serverWorld = new ServerLevel(
                 originalWorld.getServer(), Util.backgroundExecutor(), session,
@@ -345,8 +352,7 @@ public class FabricWorld extends AbstractWorld {
                 // No spawners are needed for this world.
                 ImmutableList.of(),
                 // This controls ticking, we don't need it so set it to false.
-                false,
-                originalWorld.getRandomSequences()
+                false
             )) {
                 regenForWorld(region, extent, serverWorld, options);
 
@@ -355,20 +361,10 @@ public class FabricWorld extends AbstractWorld {
                     Thread.yield();
                 }
             } finally {
-                levelProperties.worldOptions = originalOpts;
+                levelProperties.setWorldOptions(originalOpts);
             }
         } finally {
             SafeFiles.tryHardToDeleteDir(tempDir);
-        }
-    }
-
-    private static PrimaryLevelData getPrimaryLevelData(LevelData levelData) {
-        if (levelData instanceof DerivedLevelData derivedLevelData) {
-            return getPrimaryLevelData(derivedLevelData.wrapped);
-        } else if (levelData instanceof PrimaryLevelData primaryLevelData) {
-            return primaryLevelData;
-        } else {
-            throw new IllegalStateException("Unknown level data type: " + levelData.getClass());
         }
     }
 
@@ -377,7 +373,7 @@ public class FabricWorld extends AbstractWorld {
         List<CompletableFuture<ChunkAccess>> chunkLoadings = submitChunkLoadTasks(region, serverWorld);
 
         // drive executor until loading finishes
-        serverWorld.getChunkSource().mainThreadProcessor
+        ((AccessorServerChunkCache) serverWorld.getChunkSource()).getMainThreadProcessor()
             .managedBlock(() -> {
                 // bail out early if a future fails
                 if (chunkLoadings.stream().anyMatch(ftr ->
@@ -414,11 +410,12 @@ public class FabricWorld extends AbstractWorld {
     }
 
     private List<CompletableFuture<ChunkAccess>> submitChunkLoadTasks(Region region, ServerLevel world) {
+        AccessorServerChunkCache chunkManager = (AccessorServerChunkCache) world.getChunkSource();
         List<CompletableFuture<ChunkAccess>> chunkLoadings = new ArrayList<>();
         // Pre-gen all the chunks
         for (BlockVector2 chunk : region.getChunks()) {
             chunkLoadings.add(
-                world.getChunkSource().getChunkFuture(chunk.getX(), chunk.getZ(), ChunkStatus.FEATURES, true)
+                chunkManager.callGetChunkFuture(chunk.getX(), chunk.getZ(), ChunkStatus.FEATURES, true)
                     .thenApply(either -> either.left().orElse(null))
             );
         }
@@ -448,9 +445,6 @@ public class FabricWorld extends AbstractWorld {
             case WARPED_FUNGUS -> TreeFeatures.WARPED_FUNGUS;
             case CRIMSON_FUNGUS -> TreeFeatures.CRIMSON_FUNGUS;
             case CHORUS_PLANT -> EndFeatures.CHORUS_PLANT;
-            case MANGROVE -> TreeFeatures.MANGROVE;
-            case TALL_MANGROVE -> TreeFeatures.TALL_MANGROVE;
-            case CHERRY -> TreeFeatures.CHERRY;
             case RANDOM -> createTreeFeatureGenerator(TreeType.values()[ThreadLocalRandom.current().nextInt(TreeType.values().length)]);
             default -> null;
         };
@@ -486,7 +480,7 @@ public class FabricWorld extends AbstractWorld {
     public void fixLighting(Iterable<BlockVector2> chunks) {
         Level world = getWorld();
         for (BlockVector2 chunk : chunks) {
-            world.getChunkSource().getLightEngine().setLightEnabled(
+            world.getChunkSource().getLightEngine().enableLightSources(
                 new ChunkPos(chunk.getBlockX(), chunk.getBlockZ()), true
             );
         }

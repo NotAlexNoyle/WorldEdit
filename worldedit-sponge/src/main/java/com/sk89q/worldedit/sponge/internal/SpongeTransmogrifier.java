@@ -41,6 +41,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * Raw, un-cached transformations.
@@ -65,14 +66,14 @@ public class SpongeTransmogrifier {
                 return new DirectionalProperty(propertyName,
                     ((net.minecraft.world.level.block.state.properties.EnumProperty<?>) nativeProperty).getPossibleValues().stream()
                         .map(x -> adaptDirection((net.minecraft.core.Direction) x))
-                        .toList()
+                        .collect(Collectors.toList())
                 );
             }
             if (nativeProperty instanceof net.minecraft.world.level.block.state.properties.EnumProperty) {
                 return new EnumProperty(propertyName,
                     ((net.minecraft.world.level.block.state.properties.EnumProperty<?>) nativeProperty).getPossibleValues().stream()
                         .map(StringRepresentable::getSerializedName)
-                        .toList());
+                        .collect(Collectors.toList()));
             }
             throw new IllegalStateException("Unknown property type");
         }

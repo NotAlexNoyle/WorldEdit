@@ -17,32 +17,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.sk89q.worldedit.forge;
+package com.sk89q.worldedit.forge.net.handler;
 
-import com.mojang.authlib.GameProfile;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.MenuProvider;
-import net.minecraftforge.common.util.FakePlayer;
+import com.sk89q.worldedit.forge.net.packet.LeftClickAirEventMessage;
+import com.sk89q.worldedit.forge.net.packet.LeftClickAirEventMessage.Handler;
+import net.minecraftforge.network.simple.SimpleChannel;
 
-import java.util.OptionalInt;
-import java.util.UUID;
-import javax.annotation.Nullable;
+public final class InternalPacketHandler {
+    private static final int PROTOCOL_VERSION = 1;
+    private static final SimpleChannel HANDLER = PacketHandlerUtil
+        .buildLenientHandler("internal", PROTOCOL_VERSION)
+        .simpleChannel();
 
-public class WorldEditFakePlayer extends FakePlayer {
-
-    private static final GameProfile FAKE_GAME_PROFILE = new GameProfile(UUID.nameUUIDFromBytes("worldedit".getBytes()), "[WorldEdit]");
-
-    public WorldEditFakePlayer(ServerLevel world) {
-        super(world, FAKE_GAME_PROFILE);
+    private InternalPacketHandler() {
     }
 
-    @Override
-    public boolean canEat(boolean checkHunger) {
-        return true;
+    public static void init() {
+        HANDLER.registerMessage(0, LeftClickAirEventMessage.class,
+            LeftClickAirEventMessage::encode, LeftClickAirEventMessage::decode, Handler::handle);
     }
 
-    @Override
-    public OptionalInt openMenu(@Nullable MenuProvider menuProvider) {
-        return OptionalInt.empty();
+    public static SimpleChannel getHandler() {
+        return HANDLER;
     }
 }

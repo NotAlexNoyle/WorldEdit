@@ -139,11 +139,9 @@ public class ConfigurateConfiguration extends LocalConfiguration {
         initializeSnapshotConfiguration(snapshotsDir, experimentalSnapshots);
 
         String type = node.node("shell-save-type").getString("").trim();
-        shellSaveType = type.isEmpty() ? null : type;
+        shellSaveType = type.equals("") ? null : type;
 
         extendedYLimit = node.node("compat", "extended-y-limit").getBoolean(false);
         setDefaultLocaleName(node.node("default-locale").getString(defaultLocaleName));
-
-        commandBlockSupport = node.node("command-block-support").getBoolean(false);
     }
 }

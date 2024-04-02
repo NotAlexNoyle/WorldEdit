@@ -60,6 +60,7 @@ public class SpongeBlockRegistry extends BundledBlockRegistry {
                 net.minecraft.world.level.block.state.BlockState blockState =
                     (net.minecraft.world.level.block.state.BlockState) m;
                 return new SpongeBlockMaterial(
+                    blockState.getMaterial(),
                     blockState,
                     super.getMaterial(blockType)
                 );

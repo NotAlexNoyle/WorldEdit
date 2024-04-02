@@ -26,7 +26,6 @@ import com.sk89q.worldedit.entity.BaseEntity;
 import com.sk89q.worldedit.extension.platform.AbstractPlayerActor;
 import com.sk89q.worldedit.extent.inventory.BlockBag;
 import com.sk89q.worldedit.forge.internal.NBTConverter;
-import com.sk89q.worldedit.forge.net.handler.WECUIPacketHandler;
 import com.sk89q.worldedit.internal.cui.CUIEvent;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.math.Vector3;
@@ -47,11 +46,14 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
+import net.minecraft.network.protocol.game.ClientboundCustomPayloadPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.StructureBlockEntity;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
@@ -96,7 +98,7 @@ public class ForgePlayer extends AbstractPlayerActor {
     public Location getLocation() {
         Vector3 position = Vector3.at(this.player.getX(), this.player.getY(), this.player.getZ());
         return new Location(
-            ForgeWorldEdit.inst.getWorld(this.player.serverLevel()),
+            ForgeWorldEdit.inst.getWorld((ServerLevel) this.player.level),
             position,
             this.player.getYRot(),
             this.player.getXRot());
@@ -111,12 +113,12 @@ public class ForgePlayer extends AbstractPlayerActor {
             location.getYaw(), location.getPitch()
         );
         // This may be false if the teleport was cancelled by a mod
-        return this.player.serverLevel() == level;
+        return this.player.getLevel() == level;
     }
 
     @Override
     public World getWorld() {
-        return ForgeWorldEdit.inst.getWorld(this.player.serverLevel());
+        return ForgeWorldEdit.inst.getWorld((ServerLevel) this.player.level);
     }
 
     @Override
@@ -132,7 +134,11 @@ public class ForgePlayer extends AbstractPlayerActor {
             send = send + "|" + StringUtil.joinString(params, "|");
         }
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.copiedBuffer(send, StandardCharsets.UTF_8));
-        WECUIPacketHandler.send(this.player.connection.getConnection(), buffer);
+        ClientboundCustomPayloadPacket packet = new ClientboundCustomPayloadPacket(
+            new ResourceLocation(ForgeWorldEdit.MOD_ID, ForgeWorldEdit.CUI_PLUGIN_CHANNEL),
+            buffer
+        );
+        this.player.connection.send(packet);
     }
 
     private void sendMessage(net.minecraft.network.chat.Component textComponent) {
@@ -245,10 +251,12 @@ public class ForgePlayer extends AbstractPlayerActor {
             if (block instanceof BaseBlock baseBlock && block.getBlockType().equals(BlockTypes.STRUCTURE_BLOCK)) {
                 final CompoundTag nbtData = baseBlock.getNbtData();
                 if (nbtData != null) {
-                    player.connection.send(new ClientboundBlockEntityDataPacket(
-                        new BlockPos(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ()),
-                        BlockEntityType.STRUCTURE_BLOCK,
-                        NBTConverter.toNative(nbtData)
+                    player.connection.send(ClientboundBlockEntityDataPacket.create(
+                        new StructureBlockEntity(
+                            new BlockPos(pos.getBlockX(), pos.getBlockY(), pos.getBlockZ()),
+                            Blocks.STRUCTURE_BLOCK.defaultBlockState()
+                        ),
+                        __ -> NBTConverter.toNative(nbtData)
                     ));
                 }
             }

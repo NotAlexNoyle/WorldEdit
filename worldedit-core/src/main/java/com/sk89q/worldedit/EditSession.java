@@ -1002,17 +1002,10 @@ public class EditSession implements Extent, AutoCloseable {
         checkArgument(radius >= 0, "radius >= 0");
         checkArgument(depth >= 1, "depth >= 1");
 
-        // Avoid int overflow (negative coordinate space allows for overflow back round to positive if the depth is large enough).
-        // Depth is always 1 or greater, thus the lower bound should always be <= origin y.
-        int lowerBound = origin.getBlockY() - depth + 1;
-        if (lowerBound > origin.getBlockY()) {
-            lowerBound = Integer.MIN_VALUE;
-        }
-
         MaskIntersection mask = new MaskIntersection(
                 new RegionMask(new EllipsoidRegion(null, origin, Vector3.at(radius, radius, radius))),
                 new BoundedHeightMask(
-                        Math.max(lowerBound, getWorld().getMinY()),
+                        Math.max(origin.getBlockY() - depth + 1, getWorld().getMinY()),
                         Math.min(getWorld().getMaxY(), origin.getBlockY())),
                 Masks.negate(new ExistingBlockMask(this)));
 
@@ -2247,10 +2240,9 @@ public class EditSession implements Extent, AutoCloseable {
                 } catch (ExpressionTimeoutException e) {
                     timedOut[0] = timedOut[0] + 1;
                     return null;
-                } catch (RuntimeException e) {
-                    throw e;
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    LOGGER.warn("Failed to create shape", e);
+                    return null;
                 }
             }
         };
